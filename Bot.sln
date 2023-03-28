@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BotCore", "BotCore\BotCore.csproj", "{A248C3AD-3ADC-46B2-94C9-5DAD6B8A4243}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BotCore", "BotCore\BotCore.csproj", "{A248C3AD-3ADC-46B2-94C9-5DAD6B8A4243}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{44C44403-8000-4567-A824-FCA639EB050F}"
+	ProjectSection(SolutionItems) = preProject
+		application.yml = application.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
