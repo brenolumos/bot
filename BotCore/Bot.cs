@@ -1,21 +1,23 @@
 ﻿using Discord.WebSocket;
 using Discord;
+using SharpLink;
 
 namespace Bot
 {
     public class Bot
     {
         private readonly DiscordSocketClient _client;
-        public Bot()
+        private readonly LavalinkManager _lavalinkManager;
+        public Bot(LavalinkManager lavalinkManager, DiscordSocketClient client)
         {
-            DiscordSocketConfig discordSocketConfig = new DiscordSocketConfig
-            {
-                //setta a merda da intenção privilegiada
-                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent
-            };
+            _client = client;
+            _lavalinkManager = lavalinkManager;
 
-            _client = new DiscordSocketClient(discordSocketConfig);
             _client.Log += LogAsync;
+            _client.Ready += async () =>
+            {
+                await _lavalinkManager.StartAsync();
+            };
             _client.MessageReceived += OnMessageReceived;
         }
 
@@ -44,17 +46,18 @@ namespace Bot
 
             if (message.Content.Equals("salve"))
                 await message.Channel.SendMessageAsync("vai se foder porra");
+            
+            if (message.Content.Contains("!play"))
+            {
+                string[] conteudo = message.Content.Split(" ");
 
-            if(message.Content.Equals("!oi"))
-                await JoinVoice(message);
-        }
-        //TODO
-        private async Task JoinVoice(SocketMessage message)
-        {
-            var voiceChannelId = (message.Author as IGuildUser).VoiceChannel.Id;
-            var voiceChannel = _client.GetChannel(voiceChannelId) as IVoiceChannel;
+                //TODO CORTAR STRING PRA PEGAR O LINK DO VIDEO
+                LavalinkPlayer player = _lavalinkManager.GetPlayer((message.Author as IGuildUser).Guild.Id) ?? await _lavalinkManager.JoinAsync((message.Author as IGuildUser).VoiceChannel);
 
-            var audioClient = await voiceChannel.ConnectAsync();
+                LoadTracksResponse response = await _lavalinkManager.GetTracksAsync(conteudo[1]);
+                LavalinkTrack track = response.Tracks.First();
+                await player.PlayAsync(track);
+            }
         }
     }
 }
