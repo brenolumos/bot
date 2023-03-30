@@ -50,8 +50,6 @@ namespace Bot
             if (message.Content.Contains("!play"))
             {
                 string[] conteudo = message.Content.Split(" ");
-
-                //TODO CORTAR STRING PRA PEGAR O LINK DO VIDEO
                 LavalinkPlayer player = _lavalinkManager.GetPlayer((message.Author as IGuildUser).Guild.Id) ?? await _lavalinkManager.JoinAsync((message.Author as IGuildUser).VoiceChannel);
 
                 LoadTracksResponse response = await _lavalinkManager.GetTracksAsync(conteudo[1]);
