@@ -52,7 +52,7 @@ namespace Bot
 
             if (message.Content.Equals("salve"))
                 await message.Channel.SendMessageAsync("vai se foder porra");
-
+            
             if (firstChar == "!")
             {
                 await _musicService.CommandsHandler(message);
