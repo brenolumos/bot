@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using BotCore.Services;
+using Discord;
 using Discord.WebSocket;
 using SharpLink;
 
@@ -6,8 +7,6 @@ namespace Bot
 {
     class Program
     {
-        private readonly DiscordSocketClient _client;
-
         static async Task Main(string[] args)
         {
             DiscordSocketConfig discordSocketConfig = new()
@@ -17,7 +16,6 @@ namespace Bot
             };
 
             DiscordSocketClient client = new(discordSocketConfig);
-
             LavalinkManager lavalinkManager = new LavalinkManager(client, new LavalinkManagerConfig
             {
                 RESTHost = "localhost",
@@ -27,7 +25,7 @@ namespace Bot
                 Authorization = "youshallnotpass",
                 TotalShards = 1
             });
-
+            
             var bot = new Bot(lavalinkManager, client);
             await bot.RunAsync();
         }

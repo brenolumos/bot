@@ -1,6 +1,7 @@
 ﻿using Discord.WebSocket;
 using Discord;
 using SharpLink;
+using BotCore.Services;
 
 namespace Bot
 {
@@ -8,16 +9,19 @@ namespace Bot
     {
         private readonly DiscordSocketClient _client;
         private readonly LavalinkManager _lavalinkManager;
+        private readonly MusicService _musicService;
         public Bot(LavalinkManager lavalinkManager, DiscordSocketClient client)
         {
             _client = client;
             _lavalinkManager = lavalinkManager;
-
-            _client.Log += LogAsync;
             _client.Ready += async () =>
             {
                 await _lavalinkManager.StartAsync();
             };
+
+            _musicService = new MusicService(_lavalinkManager);
+
+            _client.Log += LogAsync;
             _client.MessageReceived += OnMessageReceived;
         }
 
@@ -44,19 +48,14 @@ namespace Bot
                 return;
             }
 
+            var firstChar = message.Content.Substring(0, 1);
+
             if (message.Content.Equals("salve"))
                 await message.Channel.SendMessageAsync("vai se foder porra");
-            
-            if (message.Content.Contains("!play"))
+
+            if (firstChar == "!")
             {
-                string[] conteudo = message.Content.Split(" ");
-
-                //TODO CORTAR STRING PRA PEGAR O LINK DO VIDEO
-                LavalinkPlayer player = _lavalinkManager.GetPlayer((message.Author as IGuildUser).Guild.Id) ?? await _lavalinkManager.JoinAsync((message.Author as IGuildUser).VoiceChannel);
-
-                LoadTracksResponse response = await _lavalinkManager.GetTracksAsync(conteudo[1]);
-                LavalinkTrack track = response.Tracks.First();
-                await player.PlayAsync(track);
+                await _musicService.CommandsHandler(message);
             }
         }
     }
