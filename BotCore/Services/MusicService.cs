@@ -1,6 +1,7 @@
 ﻿using SharpLink;
 using Discord;
 using Discord.WebSocket;
+using System.Security.Cryptography;
 
 namespace BotCore.Services
 {
@@ -35,7 +36,7 @@ namespace BotCore.Services
                 switch (content[0])
                 {
                     case "!play":
-                        await PlayTrackAsync(player, content[1]);
+                        await AddTrackAsync(content[1]);
                         break;
                     case "!pause":
                         await player.PauseAsync();
@@ -56,21 +57,23 @@ namespace BotCore.Services
             }
         }
 
-        //private async Task 
-        private async Task PlayTrackAsync(LavalinkPlayer player, string link)
+        private async Task PlayRoutine(LavalinkPlayer player)
         {
-            _response = await _lavalinkManager.GetTracksAsync(link);
-
-            if(_tracks == null)
-                _tracks = new List<LavalinkTrack>(_response.Tracks);
-            else
-                _tracks.AddRange(_response.Tracks);
-
-            foreach (var track in _tracks)
+            if (!player.Playing)
             {
-                await player.PlayAsync(track);
+                await player.PlayAsync(_tracks[0]);
+                _tracks.RemoveAt(0);
             }
         }
 
+        private async Task AddTrackAsync(string link)
+        {
+            _response = await _lavalinkManager.GetTracksAsync(link);
+
+            if (_tracks == null)
+                _tracks = new List<LavalinkTrack>(_response.Tracks);
+            else
+                _tracks.AddRange(_response.Tracks);
+        }
     }
 }

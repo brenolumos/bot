@@ -26,7 +26,7 @@ namespace Bot
                 TotalShards = 1
             });
             
-            var bot = new Bot(lavalinkManager, client);
+            var bot = new Bot(lavalinkManager, client, new TextService());
             await bot.RunAsync();
         }
     }

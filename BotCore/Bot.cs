@@ -10,10 +10,12 @@ namespace Bot
         private readonly DiscordSocketClient _client;
         private readonly LavalinkManager _lavalinkManager;
         private readonly MusicService _musicService;
-        public Bot(LavalinkManager lavalinkManager, DiscordSocketClient client)
+        private readonly TextService _textService;
+        public Bot(LavalinkManager lavalinkManager, DiscordSocketClient client, TextService textService)
         {
             _client = client;
             _lavalinkManager = lavalinkManager;
+            _textService = textService;
             _client.Ready += async () =>
             {
                 await _lavalinkManager.StartAsync();
@@ -50,8 +52,15 @@ namespace Bot
 
             var firstChar = message.Content.Substring(0, 1);
 
-            if (message.Content.Equals("salve"))
-                await message.Channel.SendMessageAsync("vai se foder porra");
+            switch(firstChar)
+            {
+                case "!":
+                    await _musicService.CommandsHandler(message);
+                    break;
+                case "%":
+                    await _textService.CommandsHandler(message);
+                    break;
+            }
             
             if (firstChar == "!")
             {
