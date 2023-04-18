@@ -45,10 +45,29 @@ namespace BotCore.Services
                 rolls[i] = Random.Next(1, diceType + 1);
                 rollTotal += rolls[i];
 
-                if (i == numberOfRolls - 1)
-                    sb.Append($"({rolls[i]})");
+                if (diceType == 20)
+                {
+                    if (i == numberOfRolls - 1 && rolls[i] == 20)
+                        sb.Append($"(**{rolls[i]}**)");
+                    else if (i == numberOfRolls - 1 && rolls[i] == 1)
+                        sb.Append($"(*{rolls[i]}*)");
+                    else if (i == numberOfRolls - 1)
+                        sb.Append($"({rolls[i]})");
+                    else if (rolls[i] == 20)
+                        sb.Append($"(**{rolls[i]}**) + ");
+                    else if (rolls[i] == 1)
+                        sb.Append($"(*{rolls[i]}*) + ");
+                    else
+                        sb.Append($"({rolls[i]}) + ");
+                }
                 else
-                    sb.Append($"({rolls[i]}) + ");
+                {
+                    if (i == numberOfRolls - 1)
+                        sb.Append($"({rolls[i]})");
+                    else
+                        sb.Append($"({rolls[i]}) + ");
+                }
+
             }
 
             if (signal == "+" && extraValue != null)
