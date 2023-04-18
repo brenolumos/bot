@@ -61,11 +61,6 @@ namespace Bot
                     await _textService.CommandsHandler(message);
                     break;
             }
-            
-            if (firstChar == "!")
-            {
-                await _musicService.CommandsHandler(message);
-            }
         }
     }
 }
