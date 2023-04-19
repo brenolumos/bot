@@ -59,7 +59,7 @@ namespace BotCore.Services
                         await QueueInfo();
                         break;
                     default:
-                        await message.Channel.SendMessageAsync("Comando não existe.");
+                        await message.Channel.SendMessageAsync("Comando inexistente.");
                         return;
                 }
             }

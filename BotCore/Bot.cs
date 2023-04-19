@@ -50,6 +50,9 @@ namespace Bot
                 return;
             }
 
+            if (message.Author.Id == 681555613150347352) 
+                await message.AddReactionAsync(new Emoji("🤓"));
+
             var firstChar = message.Content.Substring(0, 1);
 
             switch(firstChar)
