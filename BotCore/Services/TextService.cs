@@ -95,7 +95,7 @@ namespace BotCore.Services
                     else
                         sb.Append($"{rolls[i]} + ");
                 }
-
+            }
             if (signal == "+" && extraValue != null)
             {
                 rollTotal += (int)extraValue;
