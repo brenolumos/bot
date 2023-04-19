@@ -8,6 +8,9 @@ namespace BotCore.Services
         private readonly LavalinkManager _lavalinkManager;
         private LoadTracksResponse _response;
         private List<LavalinkTrack> _tracks;
+        private ISocketMessageChannel? _channel;
+        private bool _skip;
+
 
         public MusicService(LavalinkManager lavaLinkManager)
         {
@@ -25,7 +28,10 @@ namespace BotCore.Services
             //busca player ativo na guild, caso não haja, dá join no voice channel
             LavalinkPlayer player = _lavalinkManager.GetPlayer((message.Author as IGuildUser).Guild.Id) ??
                 await _lavalinkManager.JoinAsync((message.Author as IGuildUser).VoiceChannel);
-            if ((message.Author as IGuildUser).VoiceChannel != player.VoiceChannel)
+
+            _channel = message.Channel;
+
+            if ((message.Author as IGuildUser).VoiceChannel != player.VoiceChannel && player.Playing)
                 await message.Channel.SendMessageAsync("Já estou conectado em outro canal de voz, maldito!");
             else
             {
@@ -43,10 +49,14 @@ namespace BotCore.Services
                         await player.ResumeAsync();
                         break;
                     case "!skip":
-                        //TODO
+                        _skip = true;
+                        await PlayRoutine(player, _skip);
                         break;
                     case "!leave":
-                        await player.DisconnectAsync();
+                        await DisconnectAsync(player);
+                        break;
+                    case "!qinfo":
+                        await QueueInfo();
                         break;
                     default:
                         await message.Channel.SendMessageAsync("Comando inexistente.");
@@ -55,13 +65,43 @@ namespace BotCore.Services
             }
         }
 
-        private async Task PlayRoutine(LavalinkPlayer player)
+        private async Task PlayRoutine(LavalinkPlayer player, bool skip = false)
         {
-            if (!player.Playing)
+            if (_tracks.Count == 0)
+                return;
+
+            if (skip)
             {
-                await player.PlayAsync(_tracks[0]);
+                var nextTrack = _tracks.First();
                 _tracks.RemoveAt(0);
+                await player.StopAsync();
+                await SendTextMessage("Tocando agora: " + nextTrack.Title);
+                await player.PlayAsync(nextTrack);
+                _skip = false;
             }
+            else
+            {
+                if (!player.Playing)
+                {
+                    await player.PlayAsync(_tracks.First());
+                    await SendTextMessage("Tocando agora: " + _tracks.First().Title);
+                    _tracks.RemoveAt(0);
+                }
+                else
+                {
+                    while (player.Playing)
+                    {
+                        await Task.Delay(3000);
+                    }
+                    if (_tracks.Count > 0 && !_skip)
+                        PlayRoutine(player);
+                }
+            }
+        }
+
+        private async Task SendTextMessage(string text)
+        {
+            await _channel.SendMessageAsync(text);
         }
 
         private async Task AddTrackAsync(LavalinkPlayer player, string link)
@@ -73,7 +113,32 @@ namespace BotCore.Services
             else
                 _tracks.AddRange(_response.Tracks);
 
-            await player.PlayAsync(_response.Tracks.First());
+            PlayRoutine(player);
+        }
+
+        private async Task DisconnectAsync(LavalinkPlayer player)
+        {
+            _tracks.Clear();
+            _channel = null;
+            await player.DisconnectAsync();
+        }
+
+        private async Task QueueInfo()
+        {
+            string text = string.Empty;
+
+            if (_tracks.Count == 0)
+                text = "Não existem itens na fila de reprodução.";
+            else
+            {
+                for (int i = 0; i < _tracks.Count; i++)
+                {
+                    string trackLength = $"{_tracks[i].Length.Minutes}m{_tracks[i].Length.Seconds}s";
+                    text += $"{i + 1} - {_tracks[i].Title} ({trackLength})\n";
+                }
+            }
+
+            await SendTextMessage(text);
         }
     }
 }
