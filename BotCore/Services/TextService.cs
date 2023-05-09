@@ -32,7 +32,6 @@ namespace BotCore.Services
                                                    "!play - Adiciona uma faixa do youtube à fila de reprodução.\r\n" +
                                                    "!pause - Pausa a reprodução da faixa atual.\r\n" +
                                                    "!resume - Retoma a reprodução da faixa atual.\r\n" +
-                                                   "!skip - Avança para a próxima faixa na fila de reprodução.\r\n" +
                                                    "!leave - Disconecta do canal de voz atual.\r\n" +
                                                    "!qinfo - Apresenta as faixas presentes na fila de reprodução.\r\n\r\n\n" +
                                                    "%d - Rolador de Dados\r\n\n" +
@@ -63,7 +62,11 @@ namespace BotCore.Services
             }
 
             int diceType = Int32.Parse(numAndDiceType[1]);
-
+            if((numberOfRolls * diceType) + extraValue.GetValueOrDefault(0) > Int32.MaxValue) 
+            {
+                await message.Channel.SendMessageAsync("Boa");
+                return;
+            }
             int[] rolls = new int[numberOfRolls];
             int rollTotal = 0;
             var sb = new StringBuilder();
