@@ -1,5 +1,6 @@
 ﻿using Discord.WebSocket;
 using System.Text;
+using BotCore.Validations;
 
 namespace BotCore.Services
 {
@@ -45,31 +46,27 @@ namespace BotCore.Services
             string[] content = input.Skip(1).ToArray();
 
             int? extraValue = null;
-            string? signal = null;
-
-            if (content.Length > 1)
-            {
-                signal = content[1];
-                extraValue = Int32.Parse(content[2]);
-            }
+            string? addOrSub = null;
             string[] numAndDiceType = content[0].Split('d', 'D');
-            int numberOfRolls = Int32.Parse(numAndDiceType[0]);
+            int.TryParse(numAndDiceType[0], out var numberOfRolls);
+            int.TryParse(numAndDiceType[1], out var diceType);
 
-            if (numberOfRolls > 200)
-            {
-                await message.Channel.SendMessageAsync("Olha o cara que tem dado até dizer chega...");
-                return;
-            }
-
-            int diceType = Int32.Parse(numAndDiceType[1]);
-            if((numberOfRolls * diceType) + extraValue.GetValueOrDefault(0) > Int32.MaxValue) 
-            {
-                await message.Channel.SendMessageAsync("Boa");
-                return;
-            }
             int[] rolls = new int[numberOfRolls];
             int rollTotal = 0;
             var sb = new StringBuilder();
+
+            if (content.Length > 1)
+            {
+                addOrSub = content[1];
+                extraValue = Int32.Parse(content[2]);
+            }
+
+            string? validationResult = await DiceRollerValidation.Validate(numberOfRolls, diceType, extraValue.GetValueOrDefault(), addOrSub);
+            if (validationResult != null)
+            {
+                await message.Channel.SendMessageAsync(validationResult);
+                return;
+            }
 
             for (int i = 0; i < numberOfRolls; i++)
             {
@@ -100,15 +97,18 @@ namespace BotCore.Services
                 }
             }
 
-            if (signal == "+" && extraValue != null)
+            if (extraValue.HasValue)
             {
-                rollTotal += (int)extraValue;
-                sb.Append($" + ({extraValue})");
-            }
-            else if (signal == "-" && extraValue != null)
-            {
-                rollTotal -= (int)extraValue;
-                sb.Append($" - ({extraValue})");
+                if (addOrSub.Equals("+"))
+                {
+                    rollTotal += (int)extraValue;
+                    sb.Append($" + ({extraValue})");
+                } 
+                else
+                {
+                    rollTotal -= (int)extraValue;
+                    sb.Append($" - ({extraValue})");
+                }
             }
 
             string response = $"Você rolou: {rollTotal}  (||" + sb.ToString() + "||)";
