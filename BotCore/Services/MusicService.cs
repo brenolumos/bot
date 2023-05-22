@@ -1,38 +1,52 @@
 ﻿using SharpLink;
 using Discord;
 using Discord.WebSocket;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Timers;
+
 namespace BotCore.Services
 {
     public class MusicService
     {
         private readonly LavalinkManager _lavalinkManager;
-        private LoadTracksResponse _response;
         private List<LavalinkTrack> _tracks;
-        private ISocketMessageChannel? _channel;
-        private bool _skip;
+        private ISocketMessageChannel _channel;
+        private SocketMessage _message;
+        private System.Timers.Timer _trackFinishedTimer;
 
-
-        public MusicService(LavalinkManager lavaLinkManager)
+        public MusicService(LavalinkManager lavalinkManager)
         {
-            _lavalinkManager = lavaLinkManager;
+            _lavalinkManager = lavalinkManager;
+            _tracks = new List<LavalinkTrack>();
+            _channel = null;
+            _trackFinishedTimer = new System.Timers.Timer(3000); // Defina o intervalo adequado em milissegundos
+            _trackFinishedTimer.Elapsed += TrackFinishedTimer_Elapsed;
         }
 
         public async Task CommandsHandler(SocketMessage message)
         {
-            if ((message.Author as IGuildUser).VoiceChannel == null)
+            if (!(message.Author is IGuildUser guildUser))
             {
-                await message.Channel.SendMessageAsync("Você precisa estar conectado em um canal de voz para usar esse comando.");
+                await message.Channel.SendMessageAsync("Esse comando só pode ser executado em um servidor.");
                 return;
             }
 
-            //busca player ativo na guild, caso não haja, dá join no voice channel
-            LavalinkPlayer player = _lavalinkManager.GetPlayer((message.Author as IGuildUser).Guild.Id) ??
-                await _lavalinkManager.JoinAsync((message.Author as IGuildUser).VoiceChannel);
+            if (guildUser.VoiceChannel == null)
+            {
+                await message.Channel.SendMessageAsync("Você precisa estar conectado a um canal de voz para usar esse comando.");
+                return;
+            }
 
+            LavalinkPlayer player = _lavalinkManager.GetPlayer(guildUser.Guild.Id) ?? await _lavalinkManager.JoinAsync(guildUser.VoiceChannel);
             _channel = message.Channel;
+            _message = message;
 
-            if ((message.Author as IGuildUser).VoiceChannel != player.VoiceChannel && player.Playing)
-                await message.Channel.SendMessageAsync("Já estou conectado em outro canal de voz, maldito!");
+
+            if (guildUser.VoiceChannel != player.VoiceChannel && player.Playing)
+            {
+                await message.Channel.SendMessageAsync("Já estou conectado a outro canal de voz.");
+            }
             else
             {
                 string[] content = message.Content.Split(" ");
@@ -49,8 +63,7 @@ namespace BotCore.Services
                         await player.ResumeAsync();
                         break;
                     case "!skip":
-                        _skip = true;
-                        await PlayRoutine(player, _skip);
+                        await PlayNextTrack(player);
                         break;
                     case "!leave":
                         await DisconnectAsync(player);
@@ -65,38 +78,15 @@ namespace BotCore.Services
             }
         }
 
-        private async Task PlayRoutine(LavalinkPlayer player, bool skip = false)
+        private void TrackFinishedTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (_tracks.Count == 0)
-                return;
+            var guildID = (IGuildUser)_message.Author;
 
-            if (skip)
-            {
-                var nextTrack = _tracks.First();
-                _tracks.RemoveAt(0);
-                await player.StopAsync();
-                await SendTextMessage("Tocando agora: " + nextTrack.Title);
-                await player.PlayAsync(nextTrack);
-                _skip = false;
-            }
-            else
-            {
-                if (!player.Playing)
-                {
-                    await player.PlayAsync(_tracks.First());
-                    await SendTextMessage("Tocando agora: " + _tracks.First().Title);
-                    _tracks.RemoveAt(0);
-                }
-                else
-                {
-                    while (player.Playing)
-                    {
-                        await Task.Delay(3000);
-                    }
-                    if (_tracks.Count > 0 && !_skip)
-                        PlayRoutine(player);
-                }
-            }
+
+
+            var player = _lavalinkManager.GetPlayer(guildID.Guild.Id);
+            if (!player.Playing)
+                PlayNextTrack(player);
         }
 
         private async Task SendTextMessage(string text)
@@ -106,20 +96,37 @@ namespace BotCore.Services
 
         private async Task AddTrackAsync(LavalinkPlayer player, string link)
         {
-            _response = await _lavalinkManager.GetTracksAsync(link);
+            var response = await _lavalinkManager.GetTracksAsync(link);
 
             if (_tracks == null)
-                _tracks = new List<LavalinkTrack>(_response.Tracks);
+                _tracks = new List<LavalinkTrack>(response.Tracks);
             else
-                _tracks.AddRange(_response.Tracks);
+                _tracks.AddRange(response.Tracks);
 
-            PlayRoutine(player);
+            if (!player.Playing)
+                PlayNextTrack(player);
+        }
+
+        private async Task PlayNextTrack(LavalinkPlayer player)
+        {
+            if (_tracks.Count == 0)
+                return;
+
+            var nextTrack = _tracks[0];
+            _tracks.RemoveAt(0);
+
+            await player.StopAsync();
+            await SendTextMessage("Tocando agora: " + nextTrack.Title);
+            await player.PlayAsync(nextTrack);
+
+            _trackFinishedTimer.Start();
         }
 
         private async Task DisconnectAsync(LavalinkPlayer player)
         {
             _tracks.Clear();
             _channel = null;
+            _trackFinishedTimer.Stop();
             await player.DisconnectAsync();
         }
 
