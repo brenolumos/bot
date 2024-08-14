@@ -29,6 +29,7 @@ namespace Bot
 
         public async Task RunAsync()
         {
+            //O bot foi excluído para que eu pudesse deixar o repositório público sem zoarem a minha token
             var token = "MTA4NjA1MzA1MjE4MTY0NzQ4MA.G4U4sG.HkzctQrP3SlJDIYJshaI2fHuZIDAh58O7E0P9A";
 
             await _client.LoginAsync(TokenType.Bot, token);
@@ -50,6 +51,7 @@ namespace Bot
                 return;
             }
 
+            //Basicamente automatizei o bullying -> toda vez que meu querido amigo gustav mandava mensagem, meu bot reagia com emoji de nerd
             if (message.Author.Id == 681555613150347352) 
                 await message.AddReactionAsync(new Emoji("🤓"));
 
